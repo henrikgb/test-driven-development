@@ -18,4 +18,16 @@ describe('calculateTotal function', () => {
         // Assert
         expect(totalt).toBe(30);
     })
+
+    it('should return the total for multiple items', () => {
+        // Arrange
+        const cartItems: CartItem[] = [
+            { name: 'Apple', price: 10, quantity: 2},
+            { name: 'Banana', price: 5, quantity: 4}
+        ];
+        // Act
+        const total = calculateTotal(cartItems);
+        // Assert
+        expect(total).toBe(40);
+    });
 });
