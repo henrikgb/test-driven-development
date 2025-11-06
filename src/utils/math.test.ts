@@ -1,4 +1,4 @@
-import { sum } from '../utils/math';
+import { sum } from './math';
 
 describe("math sum function", () => {
     it.each([
