@@ -2,6 +2,7 @@ import { sum } from './math';
 
 describe("math sum function", () => {
     it.each([
+        // Arrange
         [2,3,5],
         [-2,-3,-5],
         [0,5,5],
