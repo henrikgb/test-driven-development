@@ -1,6 +1,13 @@
-export function calculateTotal(items: any[]): number {
+export interface CartItem {
+    name: string;
+    price: number;
+    quantity: number;
+}
+
+export function calculateTotal(items: CartItem[]): number {
     if(items.length > 0) {
-        return items[0].price * items[0].quantity;
+        const item = items[0];
+        return item.price * item.quantity;
     }
     return 0;
 }

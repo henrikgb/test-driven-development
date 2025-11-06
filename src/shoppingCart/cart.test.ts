@@ -1,9 +1,9 @@
-import { calculateTotal } from './cart';
+import { CartItem, calculateTotal } from './cart';
 
 describe('calculateTotal function', () => {
     it('should return 0 for an empty cart', () => {
         // Arrange
-        const cartItems: number[] = [];
+        const cartItems: CartItem[] = [];
         // Act
         const total = calculateTotal(cartItems);
         // Assert
@@ -12,7 +12,7 @@ describe('calculateTotal function', () => {
 
     it('should return the total for a single item', () => {
         // Arrange 
-        const cartItems = [{ name: 'Apple', price: 10, quantity: 3}];
+        const cartItems: CartItem[] = [{ name: 'Apple', price: 10, quantity: 3}];
         // Act
         const totalt = calculateTotal(cartItems);
         // Assert
