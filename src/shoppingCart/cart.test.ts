@@ -1,33 +1,14 @@
 import { CartItem, calculateTotal } from './cart';
 
-describe('calculateTotal function', () => {
-    it('should return 0 for an empty cart', () => {
-        // Arrange
-        const cartItems: CartItem[] = [];
-        // Act
-        const total = calculateTotal(cartItems);
+describe('calculateTotal cart function', () => {
+    it.each([
+        [[], 0],
+        [[{ name: 'Apple', price: 10, quantity: 2}], 20],
+        [[{ name: 'Apple', price: 10, quantity: 2}, { name: 'Banana', price: 5, quantity: 4}], 40],
+    ])("calculateTotal(%o) should return %i", (cartItems: CartItem[], expected: number) => {
+        // Act 
+        const result = calculateTotal(cartItems);
         // Assert
-        expect(total).toBe(0);
-    });
-
-    it('should return the total for a single item', () => {
-        // Arrange 
-        const cartItems: CartItem[] = [{ name: 'Apple', price: 10, quantity: 3}];
-        // Act
-        const totalt = calculateTotal(cartItems);
-        // Assert
-        expect(totalt).toBe(30);
-    })
-
-    it('should return the total for multiple items', () => {
-        // Arrange
-        const cartItems: CartItem[] = [
-            { name: 'Apple', price: 10, quantity: 2},
-            { name: 'Banana', price: 5, quantity: 4}
-        ];
-        // Act
-        const total = calculateTotal(cartItems);
-        // Assert
-        expect(total).toBe(40);
+        expect(result).toBe(expected);
     });
 });
