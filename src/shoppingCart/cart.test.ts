@@ -9,4 +9,13 @@ describe('calculateTotal function', () => {
         // Assert
         expect(total).toBe(0);
     });
+
+    it('should return the total for a single item', () => {
+        // Arrange 
+        const cartItems = [{ name: 'Apple', price: 10, quantity: 3}];
+        // Act
+        const totalt = calculateTotal(cartItems);
+        // Assert
+        expect(totalt).toBe(30);
+    })
 });
