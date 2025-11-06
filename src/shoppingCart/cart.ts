@@ -5,9 +5,11 @@ export interface CartItem {
 }
 
 export function calculateTotal(items: CartItem[]): number {
-    if(items.length > 0) {
-        const item = items[0];
-        return item.price * item.quantity;
-    }
-    return 0;
-}
+    let total = 0;
+
+    items.forEach(item => {
+        total += item.price * item.quantity;
+    });
+
+    return total;
+};
