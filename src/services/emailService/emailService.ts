@@ -20,7 +20,7 @@ export class EmailService {
             return false;
         }
 
-        this.logger.log(`Sending email to ${to}`);
+        this.logger.log(`Sending email to ${to}`, 'info');
         this.emailSender.send(to, subject, body);
         return true;
     }

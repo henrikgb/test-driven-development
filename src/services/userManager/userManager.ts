@@ -5,7 +5,7 @@ export class UserManager {
 
     addUser(username: string): void {
         this.users.push(username);
-        this.logger.log(`User ${username} added.`);
+        this.logger.log(`User ${username} added.`, 'info');
     }
     getUsers(): string[] {
         return this.users;

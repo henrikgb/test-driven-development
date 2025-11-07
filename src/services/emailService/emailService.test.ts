@@ -1,7 +1,7 @@
 import { EmailService } from './emailService';  
 
 class DummyLogger {
-    log(_message: string): void {}
+    log(_message: string, _severity: 'info' | 'warn' | 'error'): void {}
 }
 
 class DummyEmailSender {
