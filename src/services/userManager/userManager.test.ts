@@ -1,7 +1,7 @@
 import { UserManager } from "./userManager";
-import { ILogger } from "../../models/logger/logger";
+import { Logger } from "../../types/logger";
 
-class FakeLogger implements ILogger {
+class FakeLogger implements Logger {
     public logs: string[] = [];
     log(message: string): void {
         this.logs.push(message);

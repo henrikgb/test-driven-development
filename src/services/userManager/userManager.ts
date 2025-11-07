@@ -1,6 +1,6 @@
-import { ILogger } from "../../models/logger/logger";
+import { Logger } from "../../types/logger";
 export class UserManager {
-    constructor(private readonly logger: ILogger) {}
+    constructor(private readonly logger: Logger) {}
     private users: string[] = [];
 
     addUser(username: string): void {
