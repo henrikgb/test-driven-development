@@ -9,16 +9,25 @@ class FakeLogger implements ILogger {
 }
 
 describe("UserManager", () => {
+    let userManager: UserManager;
+    let fakeLogger: FakeLogger;
+
+    beforeEach(() => {
+        // Arrange
+        fakeLogger = new FakeLogger();
+        userManager = new UserManager(fakeLogger);  
+    })
     test("addUser should add a valid user", () => {
-        const userManager = new UserManager(new FakeLogger());
+        // Act
         userManager.addUser("testUser");
+        // Assert
         expect(userManager.getUsers()).toContain("testUser");
     });
 
     test("addsUser should log when a user is added", () => {
-        const fakeLogger = new FakeLogger();
-        const userManager = new UserManager(fakeLogger);
+        // Act
         userManager.addUser("testUser");
+        // Assert
         expect(fakeLogger.logs).toEqual(["User testUser added."]);
     });
 })
