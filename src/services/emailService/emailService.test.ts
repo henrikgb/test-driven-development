@@ -1,9 +1,9 @@
 import { EmailService } from './emailService';  
 
+// Dummy implementations for dependencies
 class DummyLogger {
     log(_message: string, _severity: 'info' | 'warn' | 'error'): void {}
 }
-
 class DummyEmailSender {
     send(_to: string, _subject: string, _body: string): void {}
 }
