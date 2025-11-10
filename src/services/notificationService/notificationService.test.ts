@@ -61,8 +61,6 @@ describe('NotificationService', () => {
     
     it('should send notifications to multiple users', async () => {
         // Act
-        // TODO: call notifyMultipleUsers with ['user1', 'user2', 'user3'] with
-        //       a notification of 'Hello everyone!'
         const incomingMessages = [
             { userId: 'user1', message: 'Hello everyone!', priority: 'low' },
             { userId: 'user2', message: 'Hello everyone!', priority: 'low' },
@@ -72,7 +70,6 @@ describe('NotificationService', () => {
         await notificationService.notifyMultipleUsers(incomingMessages);
         
         // Assert
-        // TODO: expect sendSpy to have been called 3 times
         expect(sendSpy).toHaveBeenCalledTimes(3);
         
         expect(sendSpy.mock.calls[0][0]).toEqual(
