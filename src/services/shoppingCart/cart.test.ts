@@ -1,5 +1,4 @@
-import { calculateTotal } from './cart';
-import type { CartItem } from '../../types/cart';
+import { calculateTotal, CartItem } from './cart';
 
 describe('calculateTotal cart function', () => {
     it.each([
