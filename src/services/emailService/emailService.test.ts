@@ -1,19 +1,19 @@
-import { EmailService } from './emailService';  
+import { createEmailService, type EmailService } from './emailService';  
 
 // Dummy implementations for dependencies
-class DummyLogger {
+const dummyLogger = {
     log(_message: string, _severity: 'info' | 'warn' | 'error'): void {}
-}
-class DummyEmailSender {
+};
+const dummyEmailSender = {
     send(_to: string, _subject: string, _body: string): void {}
-}
+};
 
 describe('EmailService', () => {
     let emailService: EmailService;
 
     beforeEach(() => {
         // Arrange
-        emailService = new EmailService(new DummyLogger(), new DummyEmailSender());
+        emailService = createEmailService(dummyLogger, dummyEmailSender);
     });
 
     it('should accept valid email parameters', () => {
