@@ -190,7 +190,72 @@ function createWeatherServiceStub() {
 The stub allows you to control what weather data is returned, isolating the alert logic from the actual weather service.
 
 #### 3. **Spies**
-Tracks information about interactions with dependencies, such as method calls and arguments, enabling you to verify behaviors indirectly. Spies record how they were called without affecting the behavior.
+Tracks information about interactions with dependencies, such as method calls and arguments, enabling you to verify behaviors indirectly. Spies record how they were called without affecting the actual behavior of the dependency.
+
+Spies are created using `jest.spyOn()` and can verify:
+- If a function was called
+- How many times it was called
+- With what arguments it was called
+- Access individual call details through `spy.mock.calls`
+
+**Example**: `notificationService.test.ts`
+```typescript
+describe('NotificationService', () => {
+    let sender: RealNotificationSender;
+    let notificationService: NotificationService;
+    let sendSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+        sender = new RealNotificationSender();
+        notificationService = new NotificationService(sender);
+
+        // Create a Spy on send method
+        sendSpy = jest.spyOn(sender, 'send');
+    });
+
+    afterEach(() => {
+        // Clear and reset the spy between tests
+        sendSpy.mockClear();
+    });
+
+    it('should send notification with low priority for short messages', async () => {
+        // Act
+        await notificationService.notifyUser('user1', 'Hi!');
+
+        // Assert
+        expect(sendSpy).toHaveBeenCalledTimes(1);
+        expect(sendSpy).toHaveBeenCalledWith({
+            userId: 'user1',
+            message: 'Hi!',
+            priority: 'low'
+        });
+    });
+
+    it('should send notifications to multiple users', async () => {
+        // Act
+        await notificationService.notifyMultipleUsers([
+            { userId: 'user1', message: 'Hello everyone!' },
+            { userId: 'user2', message: 'Hello everyone!' },
+            { userId: 'user3', message: 'Hello everyone!' }
+        ]);
+        
+        // Assert - verify call count
+        expect(sendSpy).toHaveBeenCalledTimes(3);
+        
+        // Verify individual calls using mock.calls
+        expect(sendSpy.mock.calls[0][0]).toEqual({
+            userId: 'user1',
+            message: 'Hello everyone!',
+            priority: 'low'
+        });
+    });
+});
+```
+
+**Key Benefits**:
+- Spies allow you to use **actual dependencies** within your tests while still verifying how they were called
+- Useful for integration testing scenarios where you want real behavior but need to verify interactions
+- Can verify both the number of calls and specific arguments passed to each call
 
 #### 4. **Mocks**
 More sophisticated test doubles that are both stubs and spies. They allow you to set expectations and verify that certain interactions occur during testing. Mocks can verify that specific methods were called with specific arguments.
@@ -227,6 +292,9 @@ The fake logger has working logic—it actually stores log messages—but in a s
 
 ### Testing with Stubs
 - **`weatherAlertService.ts` / `weatherAlertService.test.ts`**: Using stubs to control external service responses and test different scenarios
+
+### Testing with Spies
+- **`notificationService.ts` / `notificationService.test.ts`**: Using spies to verify method calls and interactions with real dependencies, including testing multiple calls with `spy.mock.calls`
 
 ### Async Testing and Exception Handling
 - **`user.ts` / `user.test.ts`**: Demonstrates async/await testing, exception testing with `toThrow`, and nested `describe` blocks
