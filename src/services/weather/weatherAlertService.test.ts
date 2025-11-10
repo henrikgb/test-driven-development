@@ -1,33 +1,34 @@
-import { WeatherAlertService } from '../../../src/services/weather/weatherAlertService';
-import type { WeatherService, Condition } from '../../types/weatherTypes'; 
-import { WeatherData } from '../../types/weatherTypes'; 
+import { createWeatherAlertService } from '../../../src/services/weather/weatherAlertService';
+import { WeatherData, WeatherService, Condition } from '../../../src/services/weather/weatherAlertService';
 
-class WeatherServiceStub implements WeatherService {
-    private temperature: number = 20;
-    private conditions: Condition = "sunny";
+function createWeatherServiceStub(): WeatherService & { setWeather: (temperature: number, conditions: Condition) => void } {
+    let temperature: number = 20;
+    let conditions: Condition = "sunny";
 
-    // Not part of the interface.  Used in testing to stub out the results
-    // of getCurrentWeather
-    setWeather(temperature: number, conditions: Condition) {
-        this.temperature = temperature;
-        this.conditions = conditions;
-    }
+    return {
+        // Not part of the interface.  Used in testing to stub out the results
+        // of getCurrentWeather
+        setWeather(temp: number, cond: Condition) {
+            temperature = temp;
+            conditions = cond;
+        },
 
-    async getCurrentWeather(_location: string): Promise<WeatherData> {
-        return {
-            temperature: this.temperature,
-            conditions: this.conditions
-        };
-    }
+        async getCurrentWeather(_location: string): Promise<WeatherData> {
+            return {
+                temperature,
+                conditions
+            };
+        }
+    };
 }
 
 describe('WeatherAlertService', () => {
-    let weatherService: WeatherServiceStub;
-    let alertService: WeatherAlertService;
+    let weatherService: ReturnType<typeof createWeatherServiceStub>;
+    let alertService: ReturnType<typeof createWeatherAlertService>;
 
     beforeEach(() => {
-        weatherService = new WeatherServiceStub();
-        alertService = new WeatherAlertService(weatherService);
+        weatherService = createWeatherServiceStub();
+        alertService = createWeatherAlertService(weatherService);
     });
 
     it('should return heat warning when temperature is above 35', async () => {
