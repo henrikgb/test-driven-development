@@ -1,14 +1,15 @@
-import { RealNotificationSender } from './realNotificationSender';
-import { NotificationService } from './notificationService';
+import { createRealNotificationSender } from './realNotificationSender';
+import { createNotificationService, type NotificationService } from './notificationService';
+import type { NotificationSender } from '../../types/notificationService';
 
 describe('NotificationService', () => {
-    let sender: RealNotificationSender;
+    let sender: NotificationSender;
     let notificationService: NotificationService;
     let sendSpy: jest.SpyInstance;
 
     beforeEach(() => {
-        sender = new RealNotificationSender();
-        notificationService = new NotificationService(sender);
+        sender = createRealNotificationSender();
+        notificationService = createNotificationService(sender);
         
         // Create a spy on the send method
         sendSpy = jest.spyOn(sender, 'send');
