@@ -1,11 +1,19 @@
-import { UserManager } from "./userManager";
+import { createUserManager } from "./userManager";
+import type { UserManager } from "./userManager";
 import { Logger } from "../../types/logger";
 
-class FakeLogger implements Logger {
-    public logs: string[] = [];
-    log(message: string): void {
-        this.logs.push(message);
-    }
+interface FakeLogger extends Logger {
+    logs: string[];
+}
+
+function createFakeLogger(): FakeLogger {
+    const logs: string[] = [];
+    return {
+        logs,
+        log(message: string): void {
+            logs.push(message);
+        }
+    };
 }
 
 describe("UserManager", () => {
@@ -14,8 +22,8 @@ describe("UserManager", () => {
 
     beforeEach(() => {
         // Arrange
-        fakeLogger = new FakeLogger();
-        userManager = new UserManager(fakeLogger);  
+        fakeLogger = createFakeLogger();
+        userManager = createUserManager(fakeLogger);  
     })
     test("addUser should add a valid user", () => {
         // Act

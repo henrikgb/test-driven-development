@@ -1,13 +1,20 @@
 import { Logger } from "../../types/logger";
-export class UserManager {
-    constructor(private readonly logger: Logger) {}
-    private users: string[] = [];
 
-    addUser(username: string): void {
-        this.users.push(username);
-        this.logger.log(`User ${username} added.`, 'info');
-    }
-    getUsers(): string[] {
-        return this.users;
-    }
+export interface UserManager {
+    addUser(username: string): void;
+    getUsers(): string[];
+}
+
+export function createUserManager(logger: Logger): UserManager {
+    const users: string[] = [];
+
+    return {
+        addUser(username: string): void {
+            users.push(username);
+            logger.log(`User ${username} added.`, 'info');
+        },
+        getUsers(): string[] {
+            return users;
+        }
+    };
 }
