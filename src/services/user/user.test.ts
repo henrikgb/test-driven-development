@@ -1,13 +1,13 @@
-import {User, fetchUser} from './user';
+import {User, UserType, fetchUser} from './user';
 
 describe('User', () => {
-  let user: User;
+  let user: UserType;
   let name: string;
   let email: string;
 
   beforeEach(() => {
     // Arrange
-    user = new User('Jane Doe', 'jane@example.com');
+    user = User('Jane Doe', 'jane@example.com');
 
     // Act
     name = user.getName();
@@ -18,7 +18,8 @@ describe('User', () => {
     // Assert
     expect(name).toBe('Jane Doe');
     expect(email).toBe('jane@example.com');
-    expect(user).toBeInstanceOf(User);
+    expect(user).toHaveProperty('getName');
+    expect(user).toHaveProperty('getEmail');
   });
 
   describe('User email tests', () => {
@@ -34,20 +35,19 @@ describe('User', () => {
 
     test('invalid email throws an error', () => {
       // Assert
-      expect(() => new User('Invalid', 'invalid-email')).toThrow('Invalid email');
+      expect(() => User('Invalid', 'invalid-email')).toThrow('Invalid email');
     });
   });
   
   describe("fetchUser", () => {
     it('fetches data asynchronously', async () => {
       // Arrange
-      const user = await fetchUser();
+      const userData = await fetchUser();
+      const user = User(userData.name, userData.email);
 
       // Assert
-      expect(user).toEqual({
-        name: 'John Doe',
-        email: 'john@example.com',
-      });
+      expect(user.getName()).toBe('John Doe');
+      expect(user.getEmail()).toBe('john@example.com');
     });
   });
 });
