@@ -407,9 +407,24 @@ it('should calculate bulk prices correctly', async () => {
 - **Predictability**: Same inputs always produce same outputs
 
 #### 5. **Fakes**
-Simpler implementations of complex behavior that are useful for testing, typically with some working logic, often used to simulate a real system or component.
+Fakes are working implementations that simulate real components but in a simpler, more controlled way. Unlike dummies (no behavior) or stubs (predefined responses), fakes have actual working logic that mimics the real thing. They're particularly useful for replacing complex dependencies like databases, file systems, or external APIs.
 
-**Example**: `userManager.test.ts`
+**Key Characteristics of Fakes**:
+- Have real, working implementations
+- Mimic the behavior of the real component
+- Typically simpler than production versions (e.g., in-memory instead of actual database)
+- Allow state verification after operations
+- Useful for avoiding uncertainty or delays from real implementations
+- Can be complex to build because they need to accurately simulate real behavior
+
+**When to Use Fakes**:
+- Testing code that interacts with databases
+- Avoiding network calls to external services
+- When you need to verify state changes after operations
+- Testing complex workflows that depend on multiple operations
+- When stubs are too simple and mocks feel like over-engineering
+
+**Example 1: Fake Logger** (`userManager.test.ts`)
 ```typescript
 function createFakeLogger(): FakeLogger {
     const logs: string[] = [];
@@ -420,9 +435,175 @@ function createFakeLogger(): FakeLogger {
         }
     };
 }
+
+// Using the fake logger in tests
+it('should log when adding a user', () => {
+    // Arrange
+    const fakeLogger = createFakeLogger();
+    const userManager = createUserManager(fakeLogger);
+    
+    // Act
+    userManager.addUser('Alice');
+    
+    // Assert
+    expect(fakeLogger.logs).toContain('User added: Alice');
+});
 ```
 
-The fake logger has working logic—it actually stores log messages—but in a simpler way than a production logger.
+The fake logger has working logic—it actually stores log messages in an array—but in a simpler way than a production logger that might write to files or external logging services.
+
+**Example 2: In-Memory Repository** (`userService.test.ts`)
+
+A more complex and practical example is the `InMemoryUserRepository`, which serves as a complete replacement for a database repository:
+
+```typescript
+export function createInMemoryUserRepository(): UserRepository & { clear: () => void } {
+    let users: Map<string, User> = new Map();
+    let currentId = 1;
+
+    const generateId = (): string => {
+        return (currentId++).toString();
+    };
+
+    return {
+        async create(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+            const user: User = {
+                id: generateId(),
+                ...userData,
+                createdAt: new Date()
+            };
+            users.set(user.id, user);
+            return { ...user };
+        },
+
+        async findById(id: string): Promise<User | null> {
+            const user = users.get(id);
+            return user ? { ...user } : null;
+        },
+
+        async findByEmail(email: string): Promise<User | null> {
+            const user = Array.from(users.values()).find(u => u.email === email);
+            return user ? { ...user } : null;
+        },
+
+        async update(id: string, data: Partial<User>): Promise<User | null> {
+            const existing = users.get(id);
+            if (!existing) {
+                return null;
+            }
+
+            const updated = {
+                ...existing,
+                ...data,
+                id: existing.id,
+                createdAt: existing.createdAt
+            };
+            users.set(id, updated);
+            return { ...updated };
+        },
+
+        async delete(id: string): Promise<boolean> {
+            return users.delete(id);
+        },
+
+        async findAll(): Promise<User[]> {
+            return Array.from(users.values()).map(user => ({ ...user }));
+        },
+
+        // Helper method for testing - ensures data isolation between tests
+        clear(): void {
+            users.clear();
+            currentId = 1;
+        }
+    };
+}
+```
+
+**Key Features of this Fake**:
+- **Full Implementation**: Implements all methods of the `UserRepository` interface
+- **In-Memory Storage**: Uses a `Map` instead of an actual database
+- **ID Generation**: Simulates auto-incrementing IDs like a real database
+- **Data Isolation**: The `clear()` method ensures tests don't interfere with each other
+- **Realistic Behavior**: Returns copies of objects to prevent unintended mutations
+- **Type Safety**: Properly typed to match the real repository interface
+
+**Using the Fake Repository in Tests**:
+
+```typescript
+describe('UserService', () => {
+    let userRepository: ReturnType<typeof createInMemoryUserRepository>;
+
+    beforeEach(() => {
+        userRepository = createInMemoryUserRepository();
+    });
+
+    afterEach(() => {
+        userRepository.clear(); // Clean up between tests
+    });
+
+    it('should create a new user successfully', async () => {
+        // Act
+        const user = await registerUser(userRepository, 'test@example.com', 'Test User');
+
+        // Assert - Verify state of the fake repository
+        expect(user.email).toEqual('test@example.com');
+        expect(user.name).toBe('Test User');
+        expect(user.id).toBeDefined();
+        expect(user.createdAt).toBeInstanceOf(Date);
+    });
+
+    it('should not allow duplicate emails', async () => {
+        // Arrange
+        await registerUser(userRepository, 'test@example.com', 'Test User');
+
+        // Act & Assert
+        await expect(
+            registerUser(userRepository, 'test@example.com', 'Another User')
+        ).rejects.toThrow('User with this email already exists');
+    });
+
+    it('should update user name successfully', async () => {
+        // Arrange
+        const user = await registerUser(userRepository, 'test@example.com', 'Test User');
+
+        // Act
+        const updated = await updateUserName(userRepository, user.id, 'New Name');
+
+        // Assert - Verify the state changed correctly
+        expect(updated.name).toBe('New Name');
+        expect(updated.email).toBe('test@example.com');
+        expect(updated.id).toBe(user.id);
+    });
+
+    it('should delete user successfully', async () => {
+        // Arrange
+        const user = await registerUser(userRepository, 'test@example.com', 'Test User');
+
+        // Act
+        const result = await deactivateUser(userRepository, user.id);
+
+        // Assert - Verify state after deletion
+        expect(result).toBe(true);
+        const found = await userRepository.findById(user.id);
+        expect(found).toBeNull();
+    });
+});
+```
+
+**Benefits of Using Fakes**:
+1. **No External Dependencies**: Tests run without needing a real database
+2. **Speed**: In-memory operations are much faster than database queries
+3. **Predictability**: Complete control over data and state
+4. **State Verification**: Can verify the state after operations (e.g., checking if a user was actually deleted)
+5. **Data Isolation**: Each test starts with a clean slate using `clear()`
+6. **Realistic Testing**: Tests the actual interaction patterns with a repository
+7. **Easy Setup**: No database configuration or migrations needed for tests
+
+**Fakes vs Other Test Doubles**:
+- **Fakes vs Dummies**: Dummies have no behavior; fakes have working implementations
+- **Fakes vs Stubs**: Stubs return predefined responses; fakes compute responses based on state
+- **Fakes vs Mocks**: Mocks focus on verifying interactions; fakes allow state verification
+- **Fakes vs Spies**: Spies wrap real implementations; fakes are simplified implementations
 
 ## Project Examples
 
@@ -435,6 +616,7 @@ The fake logger has working logic—it actually stores log messages—but in a s
 
 ### Testing with Fakes
 - **`userManager.ts` / `userManager.test.ts`**: Using a fake logger to verify logging behavior with working test logic
+- **`userService.ts` / `userService.test.ts` / `inMemoryUserRepository.ts`**: Comprehensive example of using an in-memory fake repository to test user management operations, demonstrating state verification, data isolation, and realistic database simulation
 
 ### Testing with Stubs
 - **`weatherAlertService.ts` / `weatherAlertService.test.ts`**: Using stubs to control external service responses and test different scenarios
