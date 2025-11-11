@@ -289,7 +289,122 @@ describe('NotificationService', () => {
 - Can verify both the number of calls and specific arguments passed to each call
 
 #### 4. **Mocks**
-More sophisticated test doubles that are both stubs and spies. They allow you to set expectations and verify that certain interactions occur during testing. Mocks can verify that specific methods were called with specific arguments.
+Mocks are powerful test doubles that combine the capabilities of both stubs and spies. They fully simulate dependencies by creating controlled substitutes, allowing you to:
+- Control what values or responses a dependency returns (like stubs)
+- Verify how the dependency was called (like spies)
+- Test code in isolation without relying on unpredictable external systems
+
+**Why Use Mocks?**
+
+Mocks are essential when you need to test your code independently of systems you don't control. For example, when testing a service that depends on an external API, you don't want your tests to fail because the API is down, slow, or returns unexpected data. Mocks provide a controlled environment where you can simulate various conditions and responses.
+
+**Key Difference from Spies**: Unlike spies that observe the behavior of real implementations, mocks completely replace the dependency. The actual code or functionality isn't executed at all—mocks provide simulated behavior instead.
+
+**Mocking with Jest**
+
+Jest provides powerful mocking capabilities through `jest.mock()` which replaces entire modules with mock versions. All functions in the mocked module become Jest mock functions that you can control and verify.
+
+**Example**: `pricingService.test.ts`
+
+```typescript
+import { convertPrice, calculateBulkPrices } from './pricingService';
+import { getExchangeRate } from './exchangeRateService';
+
+// Mock the entire ExchangeRateService module
+jest.mock('./exchangeRateService');
+
+describe('PricingService', () => {
+    let mockGetExchangeRate: jest.MockedFunction<typeof getExchangeRate>;
+
+    beforeEach(() => {
+        // Clear all mocks before each test
+        jest.clearAllMocks();
+        
+        // Get reference to the mocked function
+        mockGetExchangeRate = getExchangeRate as jest.MockedFunction<typeof getExchangeRate>;
+    });
+
+    it('should convert prices using exchange rate', async () => {
+        // Arrange
+        mockGetExchangeRate.mockResolvedValue(1.5);
+
+        // Act
+        const result = await convertPrice(100, 'USD', 'EUR');
+
+        // Assert
+        expect(mockGetExchangeRate).toHaveBeenCalledWith('USD', 'EUR');
+        expect(result).toBe(150.00);
+    });
+    
+    it('should return same amount when currencies are identical', async () => {
+        // Arrange
+        mockGetExchangeRate.mockResolvedValue(1.0);
+
+        // Act
+        const result = await convertPrice(100, 'USD', 'USD');
+
+        // Assert
+        expect(mockGetExchangeRate).not.toHaveBeenCalled();
+        expect(result).toBe(100);
+    });
+});
+```
+
+In this example:
+- `jest.mock('./exchangeRateService')` replaces the entire module with a mocked version
+- `mockGetExchangeRate.mockResolvedValue(1.5)` controls what the function returns
+- We can verify the function was called with specific arguments using `toHaveBeenCalledWith()`
+- The real API call is never made—the test runs in complete isolation
+
+**Advanced Mocking Techniques**
+
+Mocks can simulate complex interactions using `mockImplementation()` to return different values based on input:
+
+```typescript
+it('should handle different exchange rates', async () => {
+    // Arrange
+    mockGetExchangeRate.mockImplementation(async (from, to) => {
+        if (to === 'EUR') return 0.85;
+        if (to === 'GBP') return 0.73;
+        return 1.0;
+    });
+
+    // Act
+    const eurResult = await convertPrice(100, 'USD', 'EUR');
+    const gbpResult = await convertPrice(100, 'USD', 'GBP');
+
+    // Assert
+    expect(eurResult).toBe(85.00);
+    expect(gbpResult).toBe(73.00);
+    expect(mockGetExchangeRate).toHaveBeenCalledTimes(2);
+});
+```
+
+**Optimizing Multiple Calls**
+
+When testing functions that make multiple conversions, you can verify that the mock optimizes by caching or reusing the exchange rate:
+
+```typescript
+it('should calculate bulk prices correctly', async () => {
+    // Arrange
+    mockGetExchangeRate.mockResolvedValue(1.5);
+
+    // Act
+    const result = await calculateBulkPrices([100, 200, 300], 'USD', 'EUR');
+
+    // Assert
+    expect(mockGetExchangeRate).toHaveBeenCalledTimes(1); // Only called once!
+    expect(mockGetExchangeRate).toHaveBeenCalledWith('USD', 'EUR');
+    expect(result).toEqual([150.00, 300.00, 450.00]);
+});
+```
+
+**Benefits of Mocking**:
+- **Reliability**: Tests don't depend on external services being available
+- **Speed**: No network calls means faster test execution
+- **Control**: You can simulate edge cases, errors, and specific scenarios
+- **Isolation**: Tests focus purely on your code's logic, not external dependencies
+- **Predictability**: Same inputs always produce same outputs
 
 #### 5. **Fakes**
 Simpler implementations of complex behavior that are useful for testing, typically with some working logic, often used to simulate a real system or component.
@@ -326,6 +441,9 @@ The fake logger has working logic—it actually stores log messages—but in a s
 
 ### Testing with Spies
 - **`notificationService.ts` / `notificationService.test.ts`**: Using spies to verify method calls and interactions with real dependencies, including testing multiple calls with `spy.mock.calls`
+
+### Testing with Mocks
+- **`pricingService.ts` / `pricingService.test.ts`**: Using Jest mocks to completely replace external dependencies (exchange rate API), control return values, simulate different scenarios, and verify interactions in complete isolation
 
 ### Async Testing and Exception Handling
 - **`user.ts` / `user.test.ts`**: Demonstrates async/await testing, exception testing with `toThrow`, and nested `describe` blocks
