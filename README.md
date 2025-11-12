@@ -9,6 +9,7 @@ This repository is solely intended to get familiar with various concepts of Test
 - [Test Structure and Organization](#test-structure-and-organization)
 - [Jest Matchers](#jest-matchers)
 - [Advanced Testing Techniques](#advanced-testing-techniques)
+- [Code Smells and Refactoring Patterns](#code-smells-and-refactoring-patterns)
 - [Test Doubles](#test-doubles)
 - [Project Examples](#project-examples)
 
@@ -141,6 +142,116 @@ test('invalid email throws an error', () => {
     expect(() => User('Invalid', 'invalid-email')).toThrow('Invalid email');
 });
 ```
+
+## Code Smells and Refactoring Patterns
+
+### What are Code Smells?
+**Code smells** are indicators in your code that suggest deeper problems, such as poorly structured code or potential defects. While not bugs themselves, they hinder readability, maintainability, and can lead to more significant issues over time. Common examples include:
+- Duplicate code
+- Long methods
+- Magic numbers (unexplained numeric literals)
+
+**Refactoring patterns** provide structured techniques to address these code smells, improving code quality while ensuring existing functionality remains intact. With TDD, your test suite serves as a safety net, verifying that refactoring doesn't break existing behavior.
+
+### Eliminating Code Duplication
+Code duplication occurs when similar or identical code segments are repeated across a codebase, leading to maintenance difficulties. Following the **DRY (Don't Repeat Yourself)** principle ensures each piece of knowledge has a single, unambiguous representation within the system.
+
+**Refactoring Pattern: Extract Method**
+
+When you find repetitive logic in multiple functions, extract it into a separate method that can be reused.
+
+**Example - Before Refactoring**:
+```typescript
+export class ShoppingCart {
+  calculateTotal(): number {
+    let total = 0;
+    for (const item of this.items) {
+      let itemTotal = item.price * item.quantity;
+      if (item.quantity >= 5) {
+        itemTotal = itemTotal * 0.9;  // 10% discount
+      }
+      total += itemTotal;
+    }
+    return total;
+  }
+
+  calculateTotalWithStudentDiscount(): number {
+    let total = 0;
+    for (const item of this.items) {
+      let itemTotal = item.price * item.quantity;
+      if (item.quantity >= 5) {
+        itemTotal = itemTotal * 0.9;  // 10% discount
+      }
+      total += itemTotal;
+    }
+    return total * 0.85;  // 15% student discount
+  }
+}
+```
+
+**Example - After Refactoring**:
+```typescript
+export class ShoppingCart {
+  private calculateSubtotal(): number {
+    let total = 0;
+    for (const item of this.items) {
+      let itemTotal = item.price * item.quantity;
+      if (item.quantity >= 5) {
+        itemTotal = itemTotal * 0.9;
+      }
+      total += itemTotal;
+    }
+    return total;
+  }
+
+  calculateTotal(): number {
+    return this.calculateSubtotal();
+  }
+
+  calculateTotalWithStudentDiscount(): number {
+    return this.calculateSubtotal() * 0.85;
+  }
+}
+```
+
+### Refactoring Magic Numbers
+**Magic numbers** are specific numeric values that appear in your code without explanation. They cause maintenance headaches, especially when these values need to change or are used in multiple places.
+
+**Refactoring Pattern: Extract Constants**
+
+Replace magic numbers with well-named constants that clearly communicate their purpose and can be reused throughout the codebase.
+
+**Example - Before Refactoring**:
+```typescript
+function calculateItemCost(item: CartItem) {
+  let itemTotal = item.price * item.quantity;
+  if (item.quantity >= 5) {
+    itemTotal *= 0.9;
+  }
+  return itemTotal;
+}
+```
+
+**Example - After Refactoring**:
+```typescript
+const BULK_DISCOUNT_THRESHOLD = 5;
+const BULK_DISCOUNT_RATE = 0.9; // 10% discount
+
+function calculateItemCost(item: CartItem) {
+  let itemTotal = item.price * item.quantity;
+  if (item.quantity >= BULK_DISCOUNT_THRESHOLD) {
+    itemTotal *= BULK_DISCOUNT_RATE;
+  }
+  return itemTotal;
+}
+```
+
+**Benefits of Refactoring**:
+- Improved code readability and maintainability
+- Easier to update values in a single location
+- Self-documenting code through descriptive constant names
+- Reduced risk of errors from updating values in multiple places
+- Tests ensure functionality remains unchanged during refactoring
 
 ## Test Doubles
 
