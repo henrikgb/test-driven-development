@@ -10,6 +10,9 @@ This repository is solely intended to get familiar with various concepts of Test
 - [Jest Matchers](#jest-matchers)
 - [Advanced Testing Techniques](#advanced-testing-techniques)
 - [Code Smells and Refactoring Patterns](#code-smells-and-refactoring-patterns)
+  - [Eliminating Code Duplication](#eliminating-code-duplication)
+  - [Refactoring Magic Numbers](#refactoring-magic-numbers)
+  - [Refactoring Long Methods](#refactoring-long-methods)
 - [Test Doubles](#test-doubles)
 - [Project Examples](#project-examples)
 
@@ -252,6 +255,165 @@ function calculateItemCost(item: CartItem) {
 - Self-documenting code through descriptive constant names
 - Reduced risk of errors from updating values in multiple places
 - Tests ensure functionality remains unchanged during refactoring
+
+### Refactoring Long Methods
+**Long methods** are a code smell that occurs when a single method handles multiple responsibilities, making it difficult to understand, test, and maintain. A method becomes problematic when it performs several distinct tasks rather than focusing on a single, well-defined purpose. This complexity hinders the TDD cycle, as testing individual functionalities becomes challenging.
+
+**Refactoring Pattern: Extract Method**
+
+The Extract Method pattern addresses long methods by breaking them down into smaller, focused sub-methods, each with a single responsibility. This technique improves code readability and reusability while making testing and debugging more straightforward.
+
+**Example - Long Method with Multiple Responsibilities**:
+
+The following method handles validation, data transformation, and storage—too many responsibilities for one method:
+
+```typescript
+processUserRegistration(userData: UserData): { success: boolean; message: string; userId?: string } {
+    try {
+        // Input validation
+        if (!userData.username || userData.username.length < 3 || userData.username.length > 20) {
+            return { success: false, message: "Invalid username. Must be between 3 and 20 characters." };
+        }
+        
+        if (!userData.email || !userData.email.includes('@') || !userData.email.includes('.')) {
+            return { success: false, message: "Invalid email format." };
+        }
+        
+        if (!userData.password || userData.password.length < 8 || 
+            !/[A-Z]/.test(userData.password) || 
+            !/[0-9]/.test(userData.password) || 
+            !/[!@#$%^&*]/.test(userData.password)) {
+            return { 
+                success: false, 
+                message: "Password must be at least 8 characters and contain uppercase, number, and special character." 
+            };
+        }
+
+        // Date validation
+        const birthDate = new Date(userData.dateOfBirth);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        if (isNaN(birthDate.getTime()) || age < 18 || age > 120) {
+            return { success: false, message: "Invalid date of birth or user must be 18+" };
+        }
+
+        // Address validation
+        if (!userData.address.street || userData.address.street.length < 5) {
+            return { success: false, message: "Invalid street address" };
+        }
+        if (!userData.address.city || userData.address.city.length < 2) {
+            return { success: false, message: "Invalid city" };
+        }
+        
+        // Data transformation
+        const userId = `USER_${Math.random().toString(36).substr(2, 9)}`;
+        const normalizedData = {
+            username: userData.username.toLowerCase(),
+            email: userData.email.toLowerCase(),
+            password: userData.password,
+            dateOfBirth: birthDate.toISOString(),
+            address: {
+                street: userData.address.street.trim(),
+                city: userData.address.city.trim(),
+                country: userData.address.country.toUpperCase(),
+                postalCode: userData.address.postalCode.toUpperCase(),
+            }
+        };
+
+        this.dataStore.store(normalizedData);
+
+        return {
+            success: true,
+            message: "User registered successfully",
+            userId: userId
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: `Registration failed: ${(error as Error).message}`
+        };
+    }
+}
+```
+
+This method performs six distinct responsibilities:
+1. **User Validation**: Username, email, and password checks
+2. **Date Validation**: Birth date and age verification
+3. **Address Validation**: Street, city, country, and postal code checks
+4. **Data Transformation**: Normalizing user data
+5. **Data Storage**: Saving to the datastore
+6. **Error Handling**: Catching and returning errors
+
+**Example - After Applying Extract Method**:
+
+By extracting validation logic into separate methods, we improve readability and create reusable components:
+
+```typescript
+private validateUser(userData: UserData): { valid: boolean; message?: string } {
+    if (!userData.username || userData.username.length < 3 || userData.username.length > 20) {
+        return { valid: false, message: "Invalid username. Must be between 3 and 20 characters." };
+    }
+    
+    if (!userData.email || !userData.email.includes('@') || !userData.email.includes('.')) {
+        return { valid: false, message: "Invalid email format." };
+    }
+    
+    if (!userData.password || userData.password.length < 8 || 
+        !/[A-Z]/.test(userData.password) || 
+        !/[0-9]/.test(userData.password) || 
+        !/[!@#$%^&*]/.test(userData.password)) {
+        return { 
+            valid: false, 
+            message: "Password must be at least 8 characters and contain uppercase, number, and special character." 
+        };
+    }
+
+    return { valid: true };
+}
+
+processUserRegistration(userData: UserData): { success: boolean; message: string; userId?: string } {
+    try {
+        // Now the main method is much cleaner and focused
+        const userValidation = this.validateUser(userData);
+        if (!userValidation.valid) {
+            return { success: false, message: userValidation.message! };
+        }
+        
+        const dateValidation = this.validateDateOfBirth(userData.dateOfBirth);
+        if (!dateValidation.valid) {
+            return { success: false, message: dateValidation.message! };
+        }
+        
+        const addressValidation = this.validateAddress(userData.address);
+        if (!addressValidation.valid) {
+            return { success: false, message: addressValidation.message! };
+        }
+        
+        const normalizedData = this.normalizeUserData(userData);
+        this.dataStore.store(normalizedData);
+        
+        return {
+            success: true,
+            message: "User registered successfully",
+            userId: normalizedData.userId
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: `Registration failed: ${(error as Error).message}`
+        };
+    }
+}
+```
+
+**Benefits of Extract Method**:
+- **Improved Readability**: The main method now reads like a high-level overview of the registration process
+- **Single Responsibility**: Each extracted method has one clear purpose
+- **Reusability**: Validation methods can be reused in other parts of the codebase
+- **Easier Testing**: Each validation method can be tested independently
+- **Simplified Debugging**: Issues can be isolated to specific methods
+- **Better Maintainability**: Changes to validation logic are localized to individual methods
+- **TDD Support**: Tests ensure refactoring doesn't change behavior—if behavior changes, it's not a successful refactor
 
 ## Test Doubles
 
