@@ -13,6 +13,7 @@ This repository is solely intended to get familiar with various concepts of Test
   - [Eliminating Code Duplication](#eliminating-code-duplication)
   - [Refactoring Magic Numbers](#refactoring-magic-numbers)
   - [Refactoring Long Methods](#refactoring-long-methods)
+  - [Refactoring Long Parameter Lists](#refactoring-long-parameter-lists)
 - [Test Doubles](#test-doubles)
 - [Project Examples](#project-examples)
 
@@ -414,6 +415,205 @@ processUserRegistration(userData: UserData): { success: boolean; message: string
 - **Simplified Debugging**: Issues can be isolated to specific methods
 - **Better Maintainability**: Changes to validation logic are localized to individual methods
 - **TDD Support**: Tests ensure refactoring doesn't change behavior—if behavior changes, it's not a successful refactor
+
+### Refactoring Long Parameter Lists
+**Long parameter lists** are a code smell that complicates function signatures, making code harder to read, maintain, and test. When a function requires many parameters, it becomes difficult to understand what each parameter represents, increases the likelihood of errors from misordered or confused parameters, and makes testing more cumbersome.
+
+**Why Long Parameter Lists are Problematic**:
+- **Readability**: Too many parameters make it challenging to understand function purpose without documentation
+- **Maintainability**: Adding or removing parameters can cause errors across the codebase
+- **Error-Prone**: Similar parameter types can easily be mixed up or passed in the wrong order
+- **Testing Challenges**: Tests become brittle and difficult to write when many arguments are required
+- **Lack of Cohesion**: May indicate the function is doing too much or parameters aren't truly related
+
+**Refactoring Pattern: Introduce Parameter Object**
+
+The Parameter Object pattern bundles related parameters into cohesive objects, simplifying function signatures and improving code organization. This approach leverages TypeScript's type-checking capabilities to ensure type safety while reducing complexity.
+
+**Example - Before Refactoring**:
+
+A function with an overwhelming number of parameters:
+
+```typescript
+export function processExamScore(
+  examScore: number,
+  isHomeworkComplete: boolean,
+  attendanceScore: number,
+  bonusActivities: BonusActivity[],
+  examWeight: number,
+  homeworkWeight: number,
+  attendanceWeight: number,
+  bonusPointsPerActivity: number,
+  passingThreshold: number,
+  isRetake: boolean,
+  courseCode: string
+): ExamResult {
+  // Function implementation...
+}
+```
+
+The corresponding test is equally difficult to read:
+
+```typescript
+test('calculates maximum score with completed homework', () => {
+    const result = processExamScore(
+        100,
+        true, // completed homework
+        3,
+        [],
+        0.7,
+        0.2,
+        0.1,
+        2,
+        75,
+        false,
+        'MATH101'
+    );
+
+    expect(result.finalScore).toBe(100);
+});
+```
+
+What do values like `0.7`, `0.1`, `2`, and `75` represent? The test requires careful examination to understand.
+
+**Example - After Refactoring**:
+
+Refactored with parameter objects, logical grouping, and default values:
+
+```typescript
+interface ExamResult {
+  finalScore: number;
+  passed: boolean;
+  gradeLevel: GradeLevel;
+  courseCode: string;
+}
+
+interface ScoreWeights {
+  exam: number;
+  homework: number;
+  attendance: number;
+}
+
+interface CoursePolicy {
+  bonusPointsPerActivity: number;
+  passingThreshold: number;
+  retakePenaltyPercentage: number;
+  missedHomeworkPentaltyPercentage: number;
+}
+
+export const defaultScoreWeights = {
+  exam: 0.7,
+  homework: 0.1,
+  attendance: 0.1,
+}
+
+export const defaultCoursePolicy = {
+  bonusPointsPerActivity: 2,
+  passingThreshold: 75,
+  retakePenaltyPercentage: 95,
+  missedHomeworkPentaltyPercentage: 60,
+}
+
+export function processExamScore(
+  courseCode: string,
+
+  // Individual Performance
+  examScore: number,
+  isHomeworkComplete: boolean,
+  attendanceScore: number,
+  bonusActivities: BonusActivity[],
+  isRetake: boolean,
+
+  // Configuration
+  scoreWeights: ScoreWeights = defaultScoreWeights,
+  coursePolicy: CoursePolicy = defaultCoursePolicy,
+): ExamResult {
+  // Implementation
+}
+```
+
+**Key Improvements**:
+1. **Parameter Objects**: Related configuration values (`ScoreWeights`, `CoursePolicy`) are grouped into cohesive objects
+2. **Logical Grouping**: Parameters are organized by category (course info, individual performance, configuration)
+3. **Default Values**: Common parameters have sensible defaults, simplifying function calls
+4. **TypeScript Interfaces**: Type-checking ensures correctness and provides better IDE support
+
+The refactored test becomes dramatically clearer:
+
+```typescript
+describe('homework impact', () => {
+    test('calculates maximum score with completed homework', () => {
+      const result = processExamScore(
+        'MATH101',
+        100,
+        true, // completed homework
+        3,
+        [],
+        false,
+        {
+            exam: 0.7,
+            homework: 0.2,
+            attendance: 0.1,
+        },
+        {
+            bonusPointsPerActivity: 2,
+            passingThreshold: 75,
+            retakePenaltyPercentage: 5,
+            missedHomeworkPentaltyPercentage: 40,
+        }
+      );
+
+      expect(result.finalScore).toBe(100);
+    });
+
+    test('applies penalty for incomplete homework', () => {
+      const result = processExamScore(
+        'MATH101',
+        100,
+        false, // incomplete homework
+        3,
+        [],
+        false,
+        {
+            exam: 0.7,
+            homework: 0.2,
+            attendance: 0.1,
+        },
+        {
+            bonusPointsPerActivity: 2,
+            passingThreshold: 75,
+            retakePenaltyPercentage: 5,
+            missedHomeworkPentaltyPercentage: 40,
+        }
+      );
+
+      expect(result.finalScore).toBe(92);
+    });
+  });
+```
+
+**Benefits of Parameter Objects**:
+- **Clarity**: Function calls are more intuitive with fewer explicit parameters
+- **Maintainability**: Adding new configuration options doesn't require changing all function calls
+- **Reduced Errors**: Grouping related parameters makes it harder to mix them up
+- **Easier Testing**: Tests focus on essential values while relying on sensible defaults
+- **Type Safety**: TypeScript interfaces provide compile-time verification
+- **Extensibility**: New related parameters can be added to objects without breaking existing code
+
+**Real-World Applications**:
+
+Parameter Objects are particularly valuable in scenarios like:
+- E-commerce platforms (payment details, shipping information)
+- API clients (authentication, request configuration)
+- Data processing pipelines (transformation rules, validation settings)
+- UI components (styling options, behavior configuration)
+
+**When to Use Alternatives**:
+
+Consider optional parameters or builder patterns when:
+- Parameters don't form a natural cohesive group
+- You need a more fluent interface
+- The parameter object would only contain one or two fields
 
 ## Test Doubles
 
