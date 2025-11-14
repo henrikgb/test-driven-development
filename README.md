@@ -159,6 +159,7 @@ test('invalid email throws an error', () => {
 
 **Refactoring patterns** provide structured techniques to address these code smells, improving code quality while ensuring existing functionality remains intact. With TDD, your test suite serves as a safety net, verifying that refactoring doesn't break existing behavior.
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ### Eliminating Code Duplication
 Code duplication occurs when similar or identical code segments are repeated across a codebase, leading to maintenance difficulties. Following the **DRY (Don't Repeat Yourself)** principle ensures each piece of knowledge has a single, unambiguous representation within the system.
 
@@ -220,6 +221,8 @@ export class ShoppingCart {
 }
 ```
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 ### Refactoring Magic Numbers
 **Magic numbers** are specific numeric values that appear in your code without explanation. They cause maintenance headaches, especially when these values need to change or are used in multiple places.
 
@@ -258,6 +261,8 @@ function calculateItemCost(item: CartItem) {
 - Self-documenting code through descriptive constant names
 - Reduced risk of errors from updating values in multiple places
 - Tests ensure functionality remains unchanged during refactoring
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ### Refactoring Long Methods
 **Long methods** are a code smell that occurs when a single method handles multiple responsibilities, making it difficult to understand, test, and maintain. A method becomes problematic when it performs several distinct tasks rather than focusing on a single, well-defined purpose. This complexity hinders the TDD cycle, as testing individual functionalities becomes challenging.
@@ -418,6 +423,8 @@ processUserRegistration(userData: UserData): { success: boolean; message: string
 - **Better Maintainability**: Changes to validation logic are localized to individual methods
 - **TDD Support**: Tests ensure refactoring doesn't change behavior—if behavior changes, it's not a successful refactor
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 ### Refactoring Long Parameter Lists
 **Long parameter lists** are a code smell that complicates function signatures, making code harder to read, maintain, and test. When a function requires many parameters, it becomes difficult to understand what each parameter represents, increases the likelihood of errors from misordered or confused parameters, and makes testing more cumbersome.
 
@@ -431,221 +438,6 @@ processUserRegistration(userData: UserData): { success: boolean; message: string
 **Refactoring Pattern: Introduce Parameter Object**
 
 The Parameter Object pattern bundles related parameters into cohesive objects, simplifying function signatures and improving code organization. This approach leverages TypeScript's type-checking capabilities to ensure type safety while reducing complexity.
-
-### Refactoring Feature Envy
-**Feature Envy** is a code smell that occurs when a method in one class interacts excessively with the data of another class, showing more interest in the features of that external class than its own. This manifests when a method frequently accesses properties or calls methods of another class rather than operating on its own data.
-
-**Why Feature Envy is Problematic**:
-- **Poor Encapsulation**: Breaches the foundation of object-oriented design by reaching across class boundaries to manipulate another class's data
-- **Increased Coupling**: Creates tight dependencies between classes, making changes in one class ripple through others
-- **Reduced Cohesion**: Methods don't focus on their class's primary responsibility, diluting its purpose
-- **Testing Complexity**: Methods become reliant on external data, requiring intricate test setups and extensive mocking
-
-**Refactoring Pattern: Move Method**
-
-The Move Method pattern addresses Feature Envy by relocating the envious method to the class whose data it primarily operates on. This realignment promotes greater cohesion, reduces coupling, and adheres to object-oriented design principles.
-
-**Example - Before Refactoring**:
-
-A `GradeAnalyzer` class with a method that heavily manipulates `Student` class data:
-
-```typescript
-class GradeAnalyzer {
-  calculateFinalGrade(): number {
-    const grades = this.student.getGrades();
-    if (grades.length === 0) return 0;
-
-    let totalEarned = 0;
-    let totalPossible = 0;
-
-    for (const grade of grades) {
-      if (this.isLateSubmission(grade)) {
-        totalEarned += grade.score * 0.9; // 10% penalty for late submissions
-      } else {
-        totalEarned += grade.score;
-      }
-      totalPossible += grade.totalPoints;
-    }
-
-    return (totalEarned / totalPossible) * 100;
-  }
-}
-```
-
-**Issues with this code**:
-- `calculateFinalGrade` relies heavily on `Student` data, creating tight dependency
-- Changes to `Student`'s data structure require updates to `calculateFinalGrade`
-- Tests require specific `Student` instances with particular data setups
-- Unclear which class owns the responsibility for grade calculations
-
-**Example - After Refactoring**:
-
-Move the scoring logic to where the data lives:
-
-```typescript
-class Grade {
-  get scoreWithLatePenalty(): number {
-    if (this.isLateSubmission()) {
-      return this.score * 0.9; // 10% penalty
-    }
-    return this.score;
-  }
-}
-
-class GradeAnalyzer {
-  calculateFinalGrade(): number {
-    if (this._grades.length === 0) return 0;
-
-    let totalEarned = 0;
-    let totalPossible = 0;
-
-    for (const grade of this._grades) {
-      totalEarned += grade.scoreWithLatePenalty;
-      totalPossible += grade.totalPoints;
-    }
-
-    return (totalEarned / totalPossible) * 100;
-  }
-}
-```
-
-**Benefits of Refactoring**:
-- **Improved Encapsulation**: Each class manages its own data and behavior
-- **Reduced Coupling**: Classes become more independent
-- **Enhanced Cohesion**: Methods focus on their class's primary responsibility
-- **Simplified Testing**: Each class can be tested independently without complex setups
-- **Better Readability**: Clear ownership of responsibilities
-
-### Refactoring Large Classes
-**Large Class** is a code smell that emerges when a class accumulates too many responsibilities, becoming excessively large and complex. This anti-pattern, sometimes called a "God Object," manages multiple unrelated concerns within a single class.
-
-**Why Large Classes are Problematic**:
-- **Reduced Maintainability**: Multiple responsibilities make the code cumbersome to understand and manage; changes in one area can inadvertently affect others
-- **Poor Readability**: Sheer volume of code makes it difficult to quickly grasp the class's purpose and logic
-- **Violation of Single Responsibility Principle**: A class should have only one reason to change; large classes inherently violate this by handling multiple concerns
-- **Testing Challenges**: Broad scope with interdependent behaviors makes unit tests sprawling and difficult to isolate
-- **Difficulty in Reuse**: Tight coupling with multiple concepts prevents reuse across the codebase, leading to duplication
-
-**Recognizing a Large Class**:
-- **Excessive Line Count**: Classes spanning hundreds of lines
-- **Numerous Methods and Properties**: Variety of functionality catering to different purposes
-- **Multiple Responsibilities**: Methods that can be grouped into separate categories
-- **Complex Conditional Logic**: Intricate statements covering numerous scenarios
-- **Common Anti-Patterns**: God Object, Multifaceted Abstraction, Shotgun Surgery (frequent changes across multiple areas)
-
-**Refactoring Pattern: Extract Class**
-
-The Extract Class pattern breaks down large classes into smaller, focused entities by applying the Single Responsibility Principle. Each extracted class encapsulates a single aspect of behavior.
-
-**Steps for Extracting Classes**:
-
-1. **Identify Responsibility Segments**: Review the large class and group methods and properties that share a cohesive purpose
-
-2. **Define New Classes**: Create classes that each encapsulate a distinct responsibility with clear, descriptive names
-
-3. **Move Properties and Methods**: Migrate related properties and methods to their respective new classes, ensuring each contains only relevant data
-
-4. **Refactor Calls and Update Dependencies**: Modify the original class to use instances of the new classes
-
-5. **Test as You Refactor**: Use existing tests to confirm behavior remains consistent, then write tests for each new class independently
-
-**Example - Before Refactoring**:
-
-A `ShoppingCart` class handling multiple responsibilities:
-
-```typescript
-class ShoppingCart {
-  private items: CartItem[] = [];
-  private discountCode?: string;
-  
-  // Item management
-  addItem(item: CartItem) { /* ... */ }
-  removeItem(itemId: string) { /* ... */ }
-  updateItemQuantity(itemId: string, quantity: number) { /* ... */ }
-  
-  // Pricing calculations
-  calculateSubtotal(): number { /* ... */ }
-  calculateTax(): number { /* ... */ }
-  calculateTotal(): number { /* ... */ }
-  
-  // Discount handling
-  applyDiscount(code: string): void { /* ... */ }
-  validateDiscountCode(code: string): boolean { /* ... */ }
-  calculateDiscountAmount(): number { /* ... */ }
-  
-  // Shipping calculations
-  calculateShippingCost(): number { /* ... */ }
-  estimateDeliveryDate(): Date { /* ... */ }
-}
-```
-
-**Example - After Refactoring**:
-
-Extracted into focused classes:
-
-```typescript
-class CartItemCollection {
-  private items: CartItem[] = [];
-  
-  addItem(item: CartItem) { /* ... */ }
-  removeItem(itemId: string) { /* ... */ }
-  updateItemQuantity(itemId: string, quantity: number) { /* ... */ }
-  getItems(): CartItem[] { return this.items; }
-}
-
-class PriceCalculator {
-  calculateSubtotal(items: CartItem[]): number { /* ... */ }
-  calculateTax(subtotal: number): number { /* ... */ }
-  calculateTotal(subtotal: number, tax: number, discount: number): number { /* ... */ }
-}
-
-class DiscountCalculator {
-  applyDiscount(code: string): void { /* ... */ }
-  validateDiscountCode(code: string): boolean { /* ... */ }
-  calculateDiscountAmount(subtotal: number): number { /* ... */ }
-}
-
-class ShippingCalculator {
-  calculateShippingCost(items: CartItem[]): number { /* ... */ }
-  estimateDeliveryDate(): Date { /* ... */ }
-}
-
-class ShoppingCart {
-  private itemCollection: CartItemCollection;
-  private priceCalculator: PriceCalculator;
-  private discountCalculator: DiscountCalculator;
-  private shippingCalculator: ShippingCalculator;
-  
-  constructor() {
-    this.itemCollection = new CartItemCollection();
-    this.priceCalculator = new PriceCalculator();
-    this.discountCalculator = new DiscountCalculator();
-    this.shippingCalculator = new ShippingCalculator();
-  }
-  
-  // Now delegates to specialized classes
-  addItem(item: CartItem) {
-    this.itemCollection.addItem(item);
-  }
-  
-  calculateTotal(): number {
-    const items = this.itemCollection.getItems();
-    const subtotal = this.priceCalculator.calculateSubtotal(items);
-    const discount = this.discountCalculator.calculateDiscountAmount(subtotal);
-    const tax = this.priceCalculator.calculateTax(subtotal - discount);
-    return this.priceCalculator.calculateTotal(subtotal, tax, discount);
-  }
-}
-```
-
-**Benefits of Extract Class**:
-- **Single Responsibility**: Each class focuses on one specific concern
-- **Improved Maintainability**: Changes are localized to relevant classes
-- **Enhanced Readability**: Smaller, focused classes are easier to understand
-- **Simplified Testing**: Each class can be tested independently with focused test suites
-- **Better Reusability**: Extracted classes can be reused across the codebase
-- **Reduced Complexity**: Breaking down large classes makes the overall system more manageable
-- **TDD Support**: Existing tests ensure refactoring doesn't break functionality
 
 **Example - Before Refactoring**:
 
@@ -831,6 +623,228 @@ Consider optional parameters or builder patterns when:
 - Parameters don't form a natural cohesive group
 - You need a more fluent interface
 - The parameter object would only contain one or two fields
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+### Refactoring Feature Envy
+**Feature Envy** is a code smell that occurs when a method in one class interacts excessively with the data of another class, showing more interest in the features of that external class than its own. This manifests when a method frequently accesses properties or calls methods of another class rather than operating on its own data.
+
+**Why Feature Envy is Problematic**:
+- **Poor Encapsulation**: Breaches the foundation of object-oriented design by reaching across class boundaries to manipulate another class's data
+- **Increased Coupling**: Creates tight dependencies between classes, making changes in one class ripple through others
+- **Reduced Cohesion**: Methods don't focus on their class's primary responsibility, diluting its purpose
+- **Testing Complexity**: Methods become reliant on external data, requiring intricate test setups and extensive mocking
+
+**Refactoring Pattern: Move Method**
+
+The Move Method pattern addresses Feature Envy by relocating the envious method to the class whose data it primarily operates on. This realignment promotes greater cohesion, reduces coupling, and adheres to object-oriented design principles.
+
+**Example - Before Refactoring**:
+
+A `GradeAnalyzer` class with a method that heavily manipulates `Student` class data:
+
+```typescript
+class GradeAnalyzer {
+  calculateFinalGrade(): number {
+    const grades = this.student.getGrades();
+    if (grades.length === 0) return 0;
+
+    let totalEarned = 0;
+    let totalPossible = 0;
+
+    for (const grade of grades) {
+      if (this.isLateSubmission(grade)) {
+        totalEarned += grade.score * 0.9; // 10% penalty for late submissions
+      } else {
+        totalEarned += grade.score;
+      }
+      totalPossible += grade.totalPoints;
+    }
+
+    return (totalEarned / totalPossible) * 100;
+  }
+}
+```
+
+**Issues with this code**:
+- `calculateFinalGrade` relies heavily on `Student` data, creating tight dependency
+- Changes to `Student`'s data structure require updates to `calculateFinalGrade`
+- Tests require specific `Student` instances with particular data setups
+- Unclear which class owns the responsibility for grade calculations
+
+**Example - After Refactoring**:
+
+Move the scoring logic to where the data lives:
+
+```typescript
+class Grade {
+  get scoreWithLatePenalty(): number {
+    if (this.isLateSubmission()) {
+      return this.score * 0.9; // 10% penalty
+    }
+    return this.score;
+  }
+}
+
+class GradeAnalyzer {
+  calculateFinalGrade(): number {
+    if (this._grades.length === 0) return 0;
+
+    let totalEarned = 0;
+    let totalPossible = 0;
+
+    for (const grade of this._grades) {
+      totalEarned += grade.scoreWithLatePenalty;
+      totalPossible += grade.totalPoints;
+    }
+
+    return (totalEarned / totalPossible) * 100;
+  }
+}
+```
+
+**Benefits of Refactoring**:
+- **Improved Encapsulation**: Each class manages its own data and behavior
+- **Reduced Coupling**: Classes become more independent
+- **Enhanced Cohesion**: Methods focus on their class's primary responsibility
+- **Simplified Testing**: Each class can be tested independently without complex setups
+- **Better Readability**: Clear ownership of responsibilities
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+### Refactoring Large Classes
+**Large Class** is a code smell that emerges when a class accumulates too many responsibilities, becoming excessively large and complex. This anti-pattern, sometimes called a "God Object," manages multiple unrelated concerns within a single class.
+
+**Why Large Classes are Problematic**:
+- **Reduced Maintainability**: Multiple responsibilities make the code cumbersome to understand and manage; changes in one area can inadvertently affect others
+- **Poor Readability**: Sheer volume of code makes it difficult to quickly grasp the class's purpose and logic
+- **Violation of Single Responsibility Principle**: A class should have only one reason to change; large classes inherently violate this by handling multiple concerns
+- **Testing Challenges**: Broad scope with interdependent behaviors makes unit tests sprawling and difficult to isolate
+- **Difficulty in Reuse**: Tight coupling with multiple concepts prevents reuse across the codebase, leading to duplication
+
+**Recognizing a Large Class**:
+- **Excessive Line Count**: Classes spanning hundreds of lines
+- **Numerous Methods and Properties**: Variety of functionality catering to different purposes
+- **Multiple Responsibilities**: Methods that can be grouped into separate categories
+- **Complex Conditional Logic**: Intricate statements covering numerous scenarios
+- **Common Anti-Patterns**: God Object, Multifaceted Abstraction, Shotgun Surgery (frequent changes across multiple areas)
+
+**Refactoring Pattern: Extract Class**
+
+The Extract Class pattern breaks down large classes into smaller, focused entities by applying the Single Responsibility Principle. Each extracted class encapsulates a single aspect of behavior.
+
+**Steps for Extracting Classes**:
+
+1. **Identify Responsibility Segments**: Review the large class and group methods and properties that share a cohesive purpose
+
+2. **Define New Classes**: Create classes that each encapsulate a distinct responsibility with clear, descriptive names
+
+3. **Move Properties and Methods**: Migrate related properties and methods to their respective new classes, ensuring each contains only relevant data
+
+4. **Refactor Calls and Update Dependencies**: Modify the original class to use instances of the new classes
+
+5. **Test as You Refactor**: Use existing tests to confirm behavior remains consistent, then write tests for each new class independently
+
+**Example - Before Refactoring**:
+
+A `ShoppingCart` class handling multiple responsibilities:
+
+```typescript
+class ShoppingCart {
+  private items: CartItem[] = [];
+  private discountCode?: string;
+  
+  // Item management
+  addItem(item: CartItem) { /* ... */ }
+  removeItem(itemId: string) { /* ... */ }
+  updateItemQuantity(itemId: string, quantity: number) { /* ... */ }
+  
+  // Pricing calculations
+  calculateSubtotal(): number { /* ... */ }
+  calculateTax(): number { /* ... */ }
+  calculateTotal(): number { /* ... */ }
+  
+  // Discount handling
+  applyDiscount(code: string): void { /* ... */ }
+  validateDiscountCode(code: string): boolean { /* ... */ }
+  calculateDiscountAmount(): number { /* ... */ }
+  
+  // Shipping calculations
+  calculateShippingCost(): number { /* ... */ }
+  estimateDeliveryDate(): Date { /* ... */ }
+}
+```
+
+**Example - After Refactoring**:
+
+Extracted into focused classes:
+
+```typescript
+class CartItemCollection {
+  private items: CartItem[] = [];
+  
+  addItem(item: CartItem) { /* ... */ }
+  removeItem(itemId: string) { /* ... */ }
+  updateItemQuantity(itemId: string, quantity: number) { /* ... */ }
+  getItems(): CartItem[] { return this.items; }
+}
+
+class PriceCalculator {
+  calculateSubtotal(items: CartItem[]): number { /* ... */ }
+  calculateTax(subtotal: number): number { /* ... */ }
+  calculateTotal(subtotal: number, tax: number, discount: number): number { /* ... */ }
+}
+
+class DiscountCalculator {
+  applyDiscount(code: string): void { /* ... */ }
+  validateDiscountCode(code: string): boolean { /* ... */ }
+  calculateDiscountAmount(subtotal: number): number { /* ... */ }
+}
+
+class ShippingCalculator {
+  calculateShippingCost(items: CartItem[]): number { /* ... */ }
+  estimateDeliveryDate(): Date { /* ... */ }
+}
+
+class ShoppingCart {
+  private itemCollection: CartItemCollection;
+  private priceCalculator: PriceCalculator;
+  private discountCalculator: DiscountCalculator;
+  private shippingCalculator: ShippingCalculator;
+  
+  constructor() {
+    this.itemCollection = new CartItemCollection();
+    this.priceCalculator = new PriceCalculator();
+    this.discountCalculator = new DiscountCalculator();
+    this.shippingCalculator = new ShippingCalculator();
+  }
+  
+  // Now delegates to specialized classes
+  addItem(item: CartItem) {
+    this.itemCollection.addItem(item);
+  }
+  
+  calculateTotal(): number {
+    const items = this.itemCollection.getItems();
+    const subtotal = this.priceCalculator.calculateSubtotal(items);
+    const discount = this.discountCalculator.calculateDiscountAmount(subtotal);
+    const tax = this.priceCalculator.calculateTax(subtotal - discount);
+    return this.priceCalculator.calculateTotal(subtotal, tax, discount);
+  }
+}
+```
+
+**Benefits of Extract Class**:
+- **Single Responsibility**: Each class focuses on one specific concern
+- **Improved Maintainability**: Changes are localized to relevant classes
+- **Enhanced Readability**: Smaller, focused classes are easier to understand
+- **Simplified Testing**: Each class can be tested independently with focused test suites
+- **Better Reusability**: Extracted classes can be reused across the codebase
+- **Reduced Complexity**: Breaking down large classes makes the overall system more manageable
+- **TDD Support**: Existing tests ensure refactoring doesn't break functionality
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 ## Test Doubles
 
